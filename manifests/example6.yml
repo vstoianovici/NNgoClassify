@@ -1,0 +1,19 @@
+kind: feedfwd
+task: class
+network:
+  input:
+    size: 784
+  hidden:
+    size: [25]
+    activation: sigmoid
+  output:
+    size: 10
+    activation: sigmoid
+training:
+  kind: backprop
+  cost: xentropy
+  params:
+    lambda: 0.1
+  optimize:
+    method: bfgs
+    iterations: 400
