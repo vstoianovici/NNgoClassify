@@ -2,7 +2,7 @@ package neural
 
 import (
 	"github.com/gonum/matrix/mat64"
-	"github.com/milosgajdos83/go-neural/pkg/matrix"
+	"github.com/vstoianovici/nngoclassify/pkg/matrix"
 )
 
 // Cost is neural network training cost

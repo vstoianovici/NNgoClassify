@@ -43,23 +43,23 @@ Feel free to explore the `Makefile` available in the root directory.
 
 ### Manifest
 
-`go-neural` allows you to define neural network architecture via a simple `YAML` file called `manifest` which can be passed to the example program shipped with the project via cli parameter. You can see the example manifest below along with some basic documentation:
+`NNgoClassify` allows you to define neural network architecture via a simple `YAML` file called `manifest` which can be passed to the example program shipped with the project via cli parameter. You can see the example manifest below along with some basic documentation:
 
 ```yaml
 kind: feedfwd                 # network type: only feedforward networks
 task: class                   # network task: only classification tasks
 network:                      # network architecture: layers and activations
   input:                      # INPUT layer
-    size: 400                 # 400 inputs
+    size: 784                 # 784 inputs (each input represents a pixel of a 28x28 greyscale picture representing a number)
   hidden:                     # HIDDEN layer
     size: [25]                # Array of all hidden layers
     activation: relu          # ReLU activation function
   output:                     # OUTPUT layer
     size: 10                  # 10 outputs - this implies 10 classes
-    activation: softmax       # softmax activation function
+    activation: softmax       # softmax activation function (excellent for classifications)
 training:                     # network training
   kind: backprop              # type of training: backpropagation only
-  cost: xentropy              # cost function: cross entropy (loglikelhood available too)
+  cost: loglike               # cost function: loglikelhood (cross entropy available too)
   params:                     # training parameters
     lambda: 1.0               # lambda is a regularizer
   optimize:                   # optimization parameters
@@ -80,8 +80,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/milosgajdos83/go-neural/neural"
-	"github.com/milosgajdos83/go-neural/pkg/config"
+	"github.com/vstoianovici/nngolassify/neural"
+	"github.com/vstoianovici/nngolassify/pkg/config"
 )
 
 func main() {
@@ -119,79 +119,54 @@ func main() {
 }
 ```
 
-You can explore the project's packages and API in [godoc](https://godoc.org/github.com/milosgajdos83/go-neural). The project's documentation needs some serious improvement, though :-)
+You can always find out more information about the functionality presented here by visiting this project's start point: https://github.com/milosgajdos83/go-neural. There you can also explore the project's packages and API in [godoc](https://godoc.org/github.com/milosgajdos83/go-neural).
 
-## Experimenting
+## The example
 
-There is a simple [MNIST](http://yann.lecun.com/exdb/mnist/) data set available in `testdata/` subdirectory to play around with. Furthermore, you can find multiple examples of different neural network manifest files in `manifests/` subdirectory. Fore brevit, see the results of some of the manifest configurations below.
+The example uses the [MNIST database](https://en.wikipedia.org/wiki/MNIST_database) to train and test the neural network.
 
-### ReLU -> Softmax -> Cross Entropy
+The MNIST (Modified National Institute of Standards and Technology) database contains 60,000 training images and 10,000 testing images of handwritten numbers from 0-9.
 
-```
-$ time ./_build/nnet -labeled -data ./testdata/data.csv -manifest manifests/example.yml
-Current Cost: 3.421197
-Current Cost: 3.087151
-Current Cost: 2.731485
-...
-...
-Current Cost: 0.088055
-Current Cost: 0.086561
-Current Cost: 0.085719
-Result status: IterationLimit
+There are 2 [MNIST] data sets available in `testdata/` subdirectory to play around with, or you could download them yourself from here:
 
-Neural net accuracy: 99.960000
+ - Training Data - [download](https://pjreddie.com/media/files/mnist_train.csv)
+ - Testing Data - [download](https://pjreddie.com/media/files/mnist_test.csv)
 
-Classification result:
-⎡ 1.943663671946687e-11⎤
-⎢  0.012190159604108151⎥
-⎢ 8.608094616279243e-05⎥
-⎢1.0168917476209273e-12⎥
-⎢ 1.348762594753421e-07⎥
-⎢1.7017240294954928e-08⎥
-⎢3.4414528109461814e-07⎥
-⎢3.8031639047418544e-07⎥
-⎢ 0.0002904105962281858⎥
-⎣     99.98743247247788⎦
+ Furthermore, you can find multiple examples of different neural network manifest files in `manifests/` subdirectory. Fore brevit, see the results of some of the manifest configurations below.
 
-real	1m40.244s
-user	1m38.561s
-sys	0m6.071s
-```
-
-You can see that the neural network classification accuracy **on the training data set** is `99.96%` and that network classifies the first sample to the correct class with `99.98%` probability. This is clearly an example of overfitting.
 
 ### ReLU -> Softmax -> Log Likelihood
 
 ```
-time ./_build/nnet -labeled -data ./testdata/data.csv -manifest manifests/example4.yml
-Current Cost: 2.455806
-Current Cost: 2.157898
-Current Cost: 1.858962
+time ./nnet -data ../testdata/mnist_test.csv -labeled -manifest ../manifests/example5.yml
+Current Cost: 2.432839
+Current Cost: 2.018512
+Current Cost: 1.625155
 ...
 ...
-Current Cost: 0.070446
-Current Cost: 0.069825
-Current Cost: 0.069216
+Current Cost: 0.027839
+Current Cost: 0.026826
+Current Cost: 0.026287
 Result status: IterationLimit
 
-Neural net accuracy: 99.960000
+Neural net accuracy: 99.500000
 
 Classification result:
-⎡ 3.046878477304935e-10⎤
-⎢    0.0315965041728176⎥
-⎢2.1424486587649327e-05⎥
-⎢ 5.349015780043783e-12⎥
-⎢ 5.797172277201534e-07⎥
-⎢ 2.132650877255262e-08⎥
-⎢ 5.525355134815623e-06⎥
-⎢  2.58203420693211e-07⎥
-⎢ 0.0004521601957074575⎥
-⎣     99.96792352623254⎦
+⎡ 5.298480689850579e-07⎤
+⎢ 7.952260749764308e-18⎥
+⎢ 1.826173561323361e-10⎥
+⎢ 0.0012653529377857982⎥
+⎢ 2.423682324787905e-18⎥
+⎢2.0833074305356955e-12⎥
+⎢ 1.767464983293055e-24⎥
+⎢     99.99873411701802⎥
+⎢ 3.341523095120271e-15⎥
+⎣1.1405043387000189e-11⎦
 
 
-real    1m28.066s
-user    1m34.502s
-sys     0m6.913s
+real	4m24.000s
+user	5m25.834s
+sys	0m31.748s
 ```
 
-`ReLU -> Softmax -> Log Likelihood` provides much faster convergence than the previous combination of activations and loss functions. Again, you can see that we are overfitting the training data. In real life you must tune your neural network on separate training, validation and test data sets!
+`ReLU -> Softmax -> Log Likelihood` provides the best convergence (better than cross entropy....at least in this case). Right now I am using the training data for validation as well, but at a certain point I will change the validation to use a separate dataset.

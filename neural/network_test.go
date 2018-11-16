@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/gonum/matrix/mat64"
-	"github.com/milosgajdos83/go-neural/pkg/config"
-	"github.com/milosgajdos83/go-neural/pkg/matrix"
+	"github.com/vstoianovici/nngoclassify/pkg/config"
+	"github.com/vstoianovici/nngoclassify/pkg/matrix"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/gonum/matrix/mat64"
-	"github.com/milosgajdos83/go-neural/pkg/config"
+	"github.com/vstoianovici/nngoclassify/pkg/config"
 	"github.com/stretchr/testify/assert"
 )
 

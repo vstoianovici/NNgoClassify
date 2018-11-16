@@ -4,7 +4,7 @@ network:
   input:
     size: 784
   hidden:
-    size: [64 32]
+    size: [25]
     activation: relu
   output:
     size: 10
@@ -13,7 +13,7 @@ training:
   kind: backprop
   cost: loglike
   params:
-    lambda: 0.01
+    lambda: 0.001
   optimize:
     method: bfgs
-    iterations: 500
+    iterations: 20
