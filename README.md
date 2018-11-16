@@ -80,8 +80,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/vstoianovici/nngolassify/neural"
-	"github.com/vstoianovici/nngolassify/pkg/config"
+	"github.com/vstoianovici/nngoclassify/neural"
+	"github.com/vstoianovici/nngoclassify/pkg/config"
 )
 
 func main() {
