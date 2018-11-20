@@ -1,0 +1,19 @@
+kind: feedfwd
+task: class
+network:
+  input:
+    size: 784
+  hidden:
+    size: [25]
+    activation: relu
+  output:
+    size: 10
+    activation: softmax
+training:
+  kind: backprop
+  cost: loglike
+  params:
+    lambda: 0.001
+  optimize:
+    method: bfgs
+    iterations: 2
