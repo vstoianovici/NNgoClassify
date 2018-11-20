@@ -16,4 +16,4 @@ training:
     lambda: 0.001
   optimize:
     method: bfgs
-    iterations: 20
+    iterations: 150

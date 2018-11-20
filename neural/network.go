@@ -2,7 +2,10 @@ package neural
 
 import (
 	"fmt"
-
+	"os"
+	"strconv"
+	"io"
+	//"path/filepath"
 	"github.com/gonum/matrix/mat64"
 	"github.com/gonum/optimize"
 	"github.com/vstoianovici/nngoclassify/pkg/config"
@@ -318,7 +321,7 @@ func ValidateTrainConfig(c *config.TrainConfig) error {
 
 // Train trains feedforward neural network per configuration passed in as parameter.
 // It returns error if either the training configuration is invalid ot the training fails.
-func (n *Network) Train(c *config.TrainConfig, inMx *mat64.Dense, labelsVec *mat64.Vector) error {
+func (n *Network) Train(c *config.TrainConfig, inMx *mat64.Dense, labelsVec *mat64.Vector, manifest string) error {
 	// validate the supplied configuration
 	if err := ValidateTrainConfig(c); err != nil {
 		return err
@@ -331,14 +334,21 @@ func (n *Network) Train(c *config.TrainConfig, inMx *mat64.Dense, labelsVec *mat
 	if labelsVec == nil {
 		return fmt.Errorf("Incorrect lables supplied: %v\n", labelsVec)
 	}
+
 	// costFunc for optimization
+	var iter int = 0
 	costFunc := func(x []float64) float64 {
 		curCost, err := n.getCost(c, x, inMx, labelsVec)
 		if err != nil {
 			panic(err)
 		}
-		// TODO: can be nebled via verbose flag
-		fmt.Printf("Current Cost: %f\n", curCost)
+		// TODO: can be enabled via verbose flag
+		if iter == 0 {
+			fmt.Printf("Initial Cost: %f ... starting optimization ...\n", curCost)
+		}else{
+			fmt.Printf("(%v of %v) Current Cost: %f\n", iter, c.Optimize.Iterations, curCost)
+		}
+		iter++
 		return curCost
 	}
 	// gradfunc for optimization
@@ -374,11 +384,19 @@ func (n *Network) Train(c *config.TrainConfig, inMx *mat64.Dense, labelsVec *mat
 	//settings.Runtime = 36000
 	// run the optimization
 	//fmt.Println("Will run optimize for settings: ", settings)
-	result, err := optimize.Local(p, initWeights, settings, optim[c.Optimize.Method])
+	_, err := optimize.Local(p, initWeights, settings, optim[c.Optimize.Method])
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Result status: %s\n", result.Status)
+	//fmt.Println("WeightsB:", mat64.Formatted(weights))
+	//fmt.Println("Deltas:", mat64.Formatted(deltas))
+	//fmt.Printf("Result status: %s\n", result.Status)
+	//keep the manifest used for training
+	keepManifest(manifest, "trainingdata", "trainedManifest.yml")
+	//save information gathered from training to files
+	for i :=1; i < len(layers); i++{
+		saveToFile(n,i)
+	}
 	return nil
 }
 
@@ -548,16 +566,7 @@ func (n *Network) Validate(valInMx *mat64.Dense, valOut *mat64.Vector) (float64,
 		row := outMx.RowView(i)
 		max := mat64.Max(row)
 		for j := 0; j < row.Len(); j++ {
-			//temp1 := row.At(j, 0)
-			//fmt.Println("Temp1:", temp1)
 			if row.At(j, 0) == max {
-				//fmt.Println("Row:\n")
-				//fmt.Println(row)
-				//fmt.Println("ValOut:\n")
-				//fmt.Println(mat64.Formatted(valOut))
-				//temp2 := int(valOut.At(i, 0))
-				//fmt.Println("Temp2:", temp2)
-
 				if j == int(valOut.At(i, 0)) {
 					hits++
 					break
@@ -588,4 +597,81 @@ func setNetWeights(layers []*Layer, weights []float64) error {
 		acc += r * c
 	}
 	return nil
+}
+
+
+//save weights or deltas to file
+func saveToFile(net *Network, id int) {
+	strID := strconv.Itoa(id)
+	h, err := os.Create("trainingdata/" + strID + "weights.model")
+	defer h.Close()
+	if err == nil {
+		
+		net.layers[id].weights.MarshalBinaryTo(h)
+	}
+	o, err := os.Create("trainingdata/" + strID + "deltas.model")
+	defer o.Close()
+	if err == nil {
+
+		net.layers[id].deltas.MarshalBinaryTo(o)
+	}
+}
+
+//load weights or deltas from file
+func LoadFromFile(net *Network) {
+	
+	var initWeights *mat64.Dense
+	var initDeltas *mat64.Dense
+	layers := net.Layers()
+
+	for i :=1; i < len(layers); i++ {
+		strID := strconv.Itoa(i)
+		h, err := os.Open("trainingdata/" + strID + "weights.model")
+		defer h.Close()
+		if err == nil {
+			initWeights = net.layers[i].weights
+			initWeights.Reset()
+			initWeights.UnmarshalBinaryFrom(h)
+		}
+		o, err := os.Create("trainingdata/" + strID + "deltas.model")
+		defer o.Close()
+		if err == nil {
+			initDeltas = net.layers[i].deltas
+			initDeltas.Reset()
+			initDeltas.UnmarshalBinaryFrom(o)
+		}
+	}
+}
+
+func keepManifest(src, dst, newname  string) (int64, error) {
+        sourceFileStat, err := os.Stat(src)
+        if err != nil {
+                return 0, err
+        }
+        if !sourceFileStat.Mode().IsRegular() {
+                return 0, fmt.Errorf("%s is not a regular file", src)
+        }
+        source, err := os.Open(src)
+        if err != nil {
+                return 0, err
+        }
+        defer source.Close()
+        newPath := dst +"/" + newname
+        _, err = os.Stat(dst)
+        if os.IsNotExist(err) {
+                 err = os.MkdirAll(dst, 0755)
+	             if err != nil {
+	                     panic(err)
+	             }
+        }
+       	destination, err := os.Create(newPath)
+        if err != nil {
+                return 0, err
+        }
+        defer destination.Close()
+        nBytes, err := io.Copy(destination, source)
+        if err != nil {
+			return 0, err
+		}
+        return nBytes, err
 }
