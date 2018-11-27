@@ -1,4 +1,4 @@
-BUILD=go build
+BUILD=go build -ldflags -s
 CLEAN=go clean
 INSTALL=go install
 BUILDPATH=./_build

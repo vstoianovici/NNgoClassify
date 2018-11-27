@@ -11,6 +11,7 @@ import (
 	"github.com/vstoianovici/nngoclassify/pkg/config"
 	"github.com/vstoianovici/nngoclassify/pkg/helpers"
 	"github.com/vstoianovici/nngoclassify/pkg/matrix"
+	"github.com/vstoianovici/nngoclassify/pkg/dataset"
 )
 
 const (
@@ -290,8 +291,7 @@ func (n *Network) doBackProp(inMx, errMx mat64.Matrix, from, to int) error {
 // costMap maps name of cost to their actual implementations
 var trainCost = map[string]Cost{
 	"xentropy": CrossEntropy{},
-	"loglike":  LogLikelihood{},
-}
+	"loglike":  LogLikelihood{}}
 
 // ValidateTrainConfig validates training configuration.
 // It returns error if any of the supplied configuration parameters are invalid.
@@ -346,7 +346,7 @@ func (n *Network) Train(c *config.TrainConfig, inMx *mat64.Dense, labelsVec *mat
 		if iter == 0 {
 			fmt.Printf("Initial Cost: %f ... starting optimization ...\n", curCost)
 		}else{
-			fmt.Printf("(%v of %v) Current Cost: %f\n", iter, c.Optimize.Iterations, curCost)
+			fmt.Printf("(%v out of a minimum of %v) Current Cost: %f\n", iter, c.Optimize.Iterations, curCost)
 		}
 		iter++
 		return curCost
@@ -388,11 +388,8 @@ func (n *Network) Train(c *config.TrainConfig, inMx *mat64.Dense, labelsVec *mat
 	if err != nil {
 		return err
 	}
-	//fmt.Println("WeightsB:", mat64.Formatted(weights))
-	//fmt.Println("Deltas:", mat64.Formatted(deltas))
-	//fmt.Printf("Result status: %s\n", result.Status)
 	//keep the manifest used for training
-	keepManifest(manifest, "trainingdata", "trainedManifest.yml")
+	keepManifest(manifest, "./trainingdata", "trainedManifest.yml")
 	//save information gathered from training to files
 	for i :=1; i < len(layers); i++{
 		saveToFile(n,i)
@@ -426,6 +423,7 @@ func (n *Network) getCost(c *config.TrainConfig, weights []float64,
 	// calculate cost
 	tc, _ := trainCost[c.Cost]
 	cost := tc.CostFunc(inMx, outMx, labelsMx)
+	//fmt.Printf("\nCost from Costfunc is: %v\n", cost)
 	// number of data samples
 	samples, _ := inMx.Dims()
 	reg := 0.0
@@ -493,7 +491,7 @@ func (n *Network) getGradient(c *config.TrainConfig, weights []float64,
 	for i := 1; i < len(layers); i++ {
 		layer := layers[i]
 		deltas := layer.Deltas()
-		deltas.Scale(1/float64(samples), deltas)
+		deltas.Scale(c.Learningrate, deltas)
 		if c.Lambda > 0.0 {
 			rows, cols := layer.Weights().Dims()
 			regWeights := mat64.NewDense(rows, cols, nil)
@@ -578,6 +576,45 @@ func (n *Network) Validate(valInMx *mat64.Dense, valOut *mat64.Vector) (float64,
 	return success, nil
 }
 
+// predict a number from an image
+// image should be 28 x 28 PNG file
+func (n *Network) PredictFromImage(net *Network, path string) int {
+	input := dataset.DataFromImage(path)
+	var s []float64
+	for _, element := range input{
+		s = append(s, element)
+	}
+	//613872 = 784x783 
+	for i:=0; i<613872; i++ {
+		s = append(s, 0)
+	}
+	plm := mat64.NewDense(784, 784, s)
+	sample := plm.RowView(0).T()
+	//inputMat := mat64.NewDense(28, 28, input)
+	//output, err := net.Classify(inputMat)
+	output, err := net.Classify(sample)
+	if err != nil {
+			fmt.Printf("Could not classify sample: %s\n", err)
+			os.Exit(1)
+		}
+	fa := mat64.Formatted(output.T(), mat64.Prefix(""))
+	fmt.Printf("\nClassification output: \n\n%v",fa)
+	best := 0
+	highest := 0.0
+	_, cols := output.Dims()
+	for i := 0; i < cols; i++ {
+		if output.At(0, i) > highest {
+			best = i
+			//fmt.Println("best:", best)
+			highest = output.At(0, i)
+		}
+	}
+	fmt.Println("\n\nHighest probability value:", highest)
+	return best
+}
+
+
+
 // setNetWeights sets weights of provided network layers to values supplied via weights slice
 // The new weights are stored in weights slice which is then rolled into particular layer's
 // weights matrix layer by layer. It fails with error if the supplied weights slice
@@ -618,10 +655,11 @@ func saveToFile(net *Network, id int) {
 }
 
 //load weights or deltas from file
-func LoadFromFile(net *Network) {
+func LoadFromFile(net *Network) error {
 	
 	var initWeights *mat64.Dense
 	var initDeltas *mat64.Dense
+	var err error
 	layers := net.Layers()
 
 	for i :=1; i < len(layers); i++ {
@@ -632,46 +670,58 @@ func LoadFromFile(net *Network) {
 			initWeights = net.layers[i].weights
 			initWeights.Reset()
 			initWeights.UnmarshalBinaryFrom(h)
+		}else{
+			return err
 		}
-		o, err := os.Create("trainingdata/" + strID + "deltas.model")
+		o, err := os.Open("trainingdata/" + strID + "deltas.model")
 		defer o.Close()
 		if err == nil {
 			initDeltas = net.layers[i].deltas
 			initDeltas.Reset()
 			initDeltas.UnmarshalBinaryFrom(o)
+		}else{
+			return err
 		}
 	}
+	return err
 }
 
 func keepManifest(src, dst, newname  string) (int64, error) {
-        sourceFileStat, err := os.Stat(src)
-        if err != nil {
-                return 0, err
-        }
-        if !sourceFileStat.Mode().IsRegular() {
-                return 0, fmt.Errorf("%s is not a regular file", src)
-        }
-        source, err := os.Open(src)
-        if err != nil {
-                return 0, err
-        }
-        defer source.Close()
+        var nBytes int64
         newPath := dst +"/" + newname
-        _, err = os.Stat(dst)
-        if os.IsNotExist(err) {
-                 err = os.MkdirAll(dst, 0755)
-	             if err != nil {
-	                     panic(err)
-	             }
-        }
-       	destination, err := os.Create(newPath)
-        if err != nil {
-                return 0, err
-        }
-        defer destination.Close()
-        nBytes, err := io.Copy(destination, source)
-        if err != nil {
-			return 0, err
-		}
-        return nBytes, err
+        if newPath != src {
+        	sourceFileStat, err := os.Stat(src)
+	        if err != nil {
+	                return 0, err
+	        }
+	        if !sourceFileStat.Mode().IsRegular() {
+	                return 0, fmt.Errorf("%s is not a regular file", src)
+	        }
+	        source, err := os.Open(src)
+	        if err != nil {
+	                return 0, err
+	        }
+	        defer source.Close()
+	        _, err = os.Stat(dst)
+	        if os.IsNotExist(err) {
+	                 err = os.MkdirAll(dst, 0755)
+		             if err != nil {
+		                     panic(err)
+		             }
+	        }
+	       	destination, err := os.Create(newPath)
+	        if err != nil {
+	                return 0, err
+	        }
+	        defer destination.Close()
+
+	    	nBytes, err = io.Copy(destination, source)
+	        if err != nil {
+				return 0, err
+			}
+	        return nBytes, err
+	        }else{
+	        	return 0, nil
+	        }
+        
 }

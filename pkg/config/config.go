@@ -44,7 +44,11 @@ type Manifest struct {
 		Cost string `yaml:"cost"`
 		// Params contains parameters of neural training
 		Params struct {
-			// Lambda is regualirzation parameter
+			// Learning rate
+			Learningrate float64 `yaml:"learningrate"`
+			//Epochs
+			Epochs int `yaml:"epochs"`
+			// Lambda is regualarization parameter
 			Lambda float64 `yaml:"lambda"`
 		} `yaml:"params"`
 		// Optimize contains configuration for training optimization
@@ -114,6 +118,10 @@ type TrainConfig struct {
 	Kind string
 	// Cost is a neural network cost function
 	Cost string
+	// Learning rate of neural network
+	Learningrate float64
+	// Epochs
+	Epochs int
 	// Lambda is regularizer parameter
 	Lambda float64
 	// Optimize holds training optimization parameters
@@ -277,6 +285,16 @@ func parseTrainConfig(m *Manifest) (*TrainConfig, error) {
 		return nil, fmt.Errorf("Cost function can not be empty!\n")
 	}
 
+	// check learningrate parameter
+	if m.Training.Params.Learningrate < 0 {
+		return nil, fmt.Errorf("Incorrect Learningrate parameter: %f\n", m.Training.Params.Learningrate)
+	}
+
+	// check epochs parameter
+	if m.Training.Params.Epochs < 0 {
+		return nil, fmt.Errorf("Incorrect Epochs parameter: %f\n", m.Training.Params.Epochs)
+	}
+
 	// check lambda parameter
 	if m.Training.Params.Lambda < 0 {
 		return nil, fmt.Errorf("Incorrect reg parameter: %f\n", m.Training.Params.Lambda)
@@ -292,6 +310,8 @@ func parseTrainConfig(m *Manifest) (*TrainConfig, error) {
 	return &TrainConfig{
 		Kind:     m.Training.Kind,
 		Cost:     m.Training.Cost,
+		Learningrate:   m.Training.Params.Learningrate,
+		Epochs:   m.Training.Params.Epochs,
 		Lambda:   m.Training.Params.Lambda,
 		Optimize: optimize,
 	}, nil

@@ -13,7 +13,9 @@ training:
   kind: backprop
   cost: loglike
   params:
-    lambda: 0.001
+    learningrate: 0.00002
+    epochs: 4
+    lambda: 0
   optimize:
     method: bfgs
-    iterations: 2
+    iterations: 400

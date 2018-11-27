@@ -134,39 +134,123 @@ There are 2 [MNIST] data sets available in `testdata/` subdirectory to play arou
 
  Furthermore, you can find multiple examples of different neural network manifest files in `manifests/` subdirectory. Fore brevit, see the results of some of the manifest configurations below.
 
+ You can have separate runs for training, validation and prediction from a png file. Below is a run that incorporates both training and validation:
+
 
 ### ReLU -> Softmax -> Log Likelihood
 
 ```
-time ./nnet -data ../testdata/mnist_test.csv -labeled -manifest ../manifests/example5.yml
-Current Cost: 2.432839
-Current Cost: 2.018512
-Current Cost: 1.625155
+time ./nnet -train ./testdata/mnist_train.csv -test ./testdata/mnist_test.csv -labeled -manifest ./manifests/example5.yml
+
+
+********************************************************************************************************************************
+This golang Neural Network recognizes handwritten numbers from the MNIST data set (after being properly trained).
+
+You can either:
+- perform supervised training of the network with a specified dataset
+- resume/continue training provided that 1 or more epoch(s) of prior training has been performed(with previous manifest or new)
+- perform validation of the trained network with a specified validation dataset
+- employ the validated trained neural network to identify hand written symbols from 28x28 grayscale png files
+
+Use the "-h" option for more details.
+********************************************************************************************************************************
+
+Training will be performed.
+Testing will be performed.
+No prediction will be performed outside of dataset.
+
+--------------------------------------------------------------------------------
+Started Training at: 2018-11-27 10:16:22 +0200 EET
+
+
+Epoch 1...
+Initial Cost: 2.440869 ... starting optimization ...
+(1 out of a minimum of 400) Current Cost: 2.041604
+(2 out of a minimum of 400) Current Cost: 1.649662
 ...
 ...
-Current Cost: 0.027839
-Current Cost: 0.026826
-Current Cost: 0.026287
-Result status: IterationLimit
-
-Neural net accuracy: 99.500000
-
-Classification result:
-⎡ 5.298480689850579e-07⎤
-⎢ 7.952260749764308e-18⎥
-⎢ 1.826173561323361e-10⎥
-⎢ 0.0012653529377857982⎥
-⎢ 2.423682324787905e-18⎥
-⎢2.0833074305356955e-12⎥
-⎢ 1.767464983293055e-24⎥
-⎢     99.99873411701802⎥
-⎢ 3.341523095120271e-15⎥
-⎣1.1405043387000189e-11⎦
+(407 out of a minimum of 400) Current Cost: 0.136419
+(408 out of a minimum of 400) Current Cost: 0.136418
+(409 out of a minimum of 400) Current Cost: 0.136418
 
 
-real	4m24.000s
-user	5m25.834s
-sys	0m31.748s
+Neural net accuracy: 97.330000
+
+Training completed successfully at 2018-11-26 22:59:19 +0200 EET.
+
+--------------------------------------------------------------------------------
+
+Example (classification for the first sample in dataset):
+
+For known value of the sample "7" ...
+...the predction vector is:
+⎡0.00017446823484466284⎤
+⎢ 8.623852378537058e-06⎥
+⎢ 0.0030112055824543515⎥
+⎢   0.06511547269211937⎥
+⎢ 9.093376879848648e-06⎥
+⎢0.00017814626691244306⎥
+⎢1.1988943512615633e-07⎥
+⎢     99.92136293811964⎥
+⎢  0.007095885564380252⎥
+⎣ 0.0030440464209573214⎦
+
+real	230m33.066s
+user	340m20.463s
+sys	45m18.598s
 ```
 
-`ReLU -> Softmax -> Log Likelihood` provides the best convergence (better than cross entropy....at least in this case). Right now I am using the training data for validation as well, but at a certain point I will change the validation to use a separate dataset.
+`ReLU -> Softmax -> Log Likelihood` provides the best convergence (better than cross entropy....at least in this case). 
+
+
+Validation input:
+
+./nnet -predict ../nums/0.png
+
+
+Validation ouput:
+
+```
+********************************************************************************************************************************
+This golang Neural Network recognizes handwritten numbers from the MNIST data set (after being properly trained).
+
+You can either:
+- perform supervised training of the network with a specified dataset
+- resume/continue training provided that 1 or more epoch(s) of prior training has been performed(with previous manifest or new)
+- perform validation of the trained network with a specified validation dataset
+- employ the validated trained neural network to identify hand written symbols from 28x28 grayscale png files
+
+Use the "-h" option for more details.
+********************************************************************************************************************************
+
+No training will be performed.
+No testing will be performed.
+Prediction based on a custom png file will be performed.
+
+--------------------------------------------------------------------------------
+Predicting at: 2018-11-27 10:13:33 +0200 EET
+
+Printing image that will be used for prediction:
+
+
+Classification output:
+
+⎡      99.9684601829045⎤
+⎢  1.87575461539393e-05⎥
+⎢  0.004904835187793786⎥
+⎢ 6.129118041610178e-06⎥
+⎢4.0586902089434754e-05⎥
+⎢0.00019896966826811355⎥
+⎢   0.00262234626449708⎥
+⎢ 0.0005923442479148213⎥
+⎢ 3.646850780774358e-06⎥
+⎣   0.02315220130996662⎦
+
+Highest probability value: 99.9684601829045
+
+Prediction: 0
+
+```
+
+There is also the possibility of resuming/continuing training by using the "-resume" argument
+
