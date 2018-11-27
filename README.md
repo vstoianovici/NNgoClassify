@@ -61,7 +61,7 @@ training:                     # network training
   kind: backprop              # type of training: backpropagation only
   cost: loglike               # cost function: loglikelhood (cross entropy available too)
   params:                     # training parameters
-  	learningrate: 0.00002     # learning rate
+    learningrate: 0.00002     # learning rate
     epochs: 4                 # number of epochs for training
     lambda: 1.0               # lambda is a regularizer
   optimize:                   # optimization parameters
