@@ -234,6 +234,7 @@ Predicting at: 2018-11-27 10:13:33 +0200 EET
 
 Printing image that will be used for prediction:
 
+![alt text](https://github.com/vstoianovici/NNgoClassify/blob/master/nums/0.png)
 
 Classification output:
 
