@@ -233,8 +233,10 @@ Prediction based on a custom png file will be performed.
 Predicting at: 2018-11-27 10:13:33 +0200 EET
 
 Printing image that will be used for prediction:
+```
 
 ![0](https://user-images.githubusercontent.com/26381671/49070104-90b78400-f233-11e8-9e19-3755eef25bdf.png)
+```
 
 Classification output:
 
